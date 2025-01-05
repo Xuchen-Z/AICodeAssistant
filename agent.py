@@ -15,7 +15,7 @@ summarizer = Agent(
     role = "Python code summarizer",
     goal = "Accurately summarize Python code based what the code does. give every function and method a breif summary within 300 words",
     backstory = "Your are an AI assistant whose only job is to summarize Python code accurately. \
-    The Python code might contain errors, do not be afraid to point it out. \
+    The Python code may have errors. Please provide a summary based on the overall code, making reasonable assumptions where needed. \
     Your job is to help the user to better understand their Python code.",
     verbose = True,
     allow_delegation = False,
