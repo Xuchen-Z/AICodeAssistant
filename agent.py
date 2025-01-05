@@ -5,12 +5,11 @@ from crewai import Agent, Task, Crew, Process
 MODEL_NAME = "codellama:7b"
 
 model = Ollama(model=MODEL_NAME)
-# response = model("Hi!")
 
 # with open("your_file.txt", "r") as file:
 #     lines = file.readlines()  # Reads file into a list of lines
 
-lines = 'print("hello world")\n;\nprint("hello world")\n'
+lines = 'print("hello world")\n;\nprint("Hi");\nprint("Bye")'
 
 summarizer = Agent(
     role = "Python code summarizer",
@@ -24,50 +23,28 @@ summarizer = Agent(
 )
 
 
-classifier = Agent(
+debugger = Agent(
     role = "Python code debugger",
-    goal = "Accurately locate every error in Python code. classifies each error into one of these types: syntax error, exception, \
-    or no errors. Also provide a line number along with it if it is not 'no errors'. \
-    If the error is not a single line but multiple lines in a row, provide the line number of the first line of the error.",
-    backstory = "Your are an AI assistant whose only job is to locate errors in Python code. \
-    Don't be afraid to point out any errors that you have noticed.",
+    goal = "Accurately debug and fix every error in Python code. \
+    If any error was found, provide a copy of the original Python code that has all errors fixed. \
+    If no error was found, then output 'no fixes were made' only without making changes to the code.",
+    backstory = "Your are an AI assistant whose only job is to find and fix errors in Python code. \
+    Don't be afraid to point out any errors that you have noticed. \
+    There is a chance that the code is error free, in that case no fixes are required.",
     verbose = True,
     allow_delegation = False,
     llm = model    
 )
 
-fixer = Agent(
-    role = "Python code fixer",
-    goal = "Locate each errors and its cause by analyzing the definition of the error type provided, \
-    and the code around the specified line number. Provide a fix to this part of Python code based on the error. \
-    If the type is 'no errors', then output 'no fixes were made'.",
-    backstory = "Your are an AI assistant whose only job is to locate and provide a fix to the error based on the \
-    type of the error and its line number. \
-    Relate to the code around the line number provided to ensure the error was understand correctly. \
-    Both error type and line number will be provided to you by the 'Python code debugger' agent. \
-    There is a chance that ther is 'no errors', in that case no fixes are required.",
-    verbose = True,
-    allow_delegation = False,
-    llm = model    
-)
-
-classify_errors = Task(
-    description = f"Locate and classfy errors in the Python code '{lines}'",
-    agent = classifier,
-    expected_output = "A line number to the error code and one of these options: 'syntax error', 'exception', or 'no errors'.",
-)
-
-fixes_to_errors = Task(
-    description = f"Provide fixes to the errors in Python code '{lines}' based on the error types and the line numbers \
-    of each error provided by the 'classifier' agent.",
-    agent = fixer,
-    expected_output = "fixes to the Python code based on the error types and the line numbers of each error \
-    provided by the 'classifier' agent. If the error types is 'no errors', then output 'no fixes were made'.",
+debug_and_fix_errors = Task(
+    description = f"Find and fix all errors in the Python code '{lines}'",
+    agent = debugger,
+    expected_output = "Output a copy of Python code with all the errors fixed, or 'no error was found' if the code is error free.",
 )
 
 defect_crew = Crew(
-    agents = [classifier, fixer],
-    tasks = [classify_errors, fixes_to_errors],
+    agents = [debugger],
+    tasks = [debug_and_fix_errors],
     verbose = 2,
     process = Process.sequential
 )
