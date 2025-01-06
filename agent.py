@@ -36,15 +36,40 @@ debugger = Agent(
     llm = model    
 )
 
+feedback_summarizer = Agent(
+    role = "User feedback summarizer",
+    goal = "Accurately summarize user feedback in a concise manner. \
+    Ensure the summary captures the key points and sentiment of the feedback without omitting critical details. \
+    If the feedback is already concise and clear, output the summary directly without modifications.",
+    backstory = "Your are a summarizer of an AI assistant whose only job is to summarize the feedback received from user. \
+    Always ensure that the summary is accurate and concise.",
+    verbose = True,
+    allow_delegation = False,
+    llm = model
+)
+
 debug_and_fix_errors = Task(
-    description = f"Find and fix all errors in the Python code '{lines}'",
+    description = f"Find and fix all errors in the Python code: '{lines}'",
     agent = debugger,
-    expected_output = "Output a copy of Python code with all the errors fixed, or 'no error was found' if the code is error free.",
+    expected_output = "Output a copy of Python code with all the errors fixed, or 'no fixes were made' if the code is error free.",
+)
+
+user_feedback_summarize = Task(
+    description = f"Summarize the feedback recieved by an AI coding assistant: '{lines}'",
+    agent = feedback_summarizer,
+    expected_output = "Output the concise sumarry of the feedback recieved.",
 )
 
 defect_crew = Crew(
     agents = [debugger],
     tasks = [debug_and_fix_errors],
+    verbose = 2,
+    process = Process.sequential
+)
+
+feedback_crew = Crew(
+    agents = [feedback_summarizer],
+    tasks = [user_feedback_summarize],
     verbose = 2,
     process = Process.sequential
 )
