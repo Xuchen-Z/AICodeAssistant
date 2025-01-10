@@ -17,7 +17,7 @@ def init_feedback_log():
             pass
     except FileNotFoundError:
         with open(FEEDBACK_LOG, "w") as f:
-            json.dump([], f)
+            json.dump({}, f)
 
 
 def save_feedback(json_str):
@@ -25,16 +25,12 @@ def save_feedback(json_str):
         f.write(json_str)
 
 
-def load_feedback_history():
+def process_feedback(new_instruction):
     try:
         with open(FEEDBACK_LOG, "r") as f:
-            return json.load(f)
+            existing_feedback = json.load(f)
     except FileNotFoundError:
-        return {"instructions": []}
-
-
-def process_feedback(new_instruction, existing_feedback_json):
-    existing_feedback = json.loads(existing_feedback_json)
+        existing_feedback = {"instructions": []}
 
     if "instructions" not in existing_feedback:
         existing_feedback["instructions"] = []
