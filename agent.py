@@ -11,10 +11,7 @@ model = Ollama(model=MODEL_NAME)
 #     lines = file.readlines()  # Reads file into a list of lines
 
 lines = 'print("hello world")\n;\nprint("Hi");\nprint("Bye")'
-feedback = 'Check the indentation in the code is correct and would not cause errors.'
-
-requirements = fb.extract_instructions('./feedback_log.json')
-print(requirements)
+feedback = 'Remove all unnecessary information and explianations, keeping the Python code only.'
 
 summarizer = Agent(
     role = "Python code summarizer",
@@ -31,9 +28,11 @@ summarizer = Agent(
 debugger = Agent(
     role = "Python code debugger",
     goal = "Identify and fix all syntax, runtime, and logical errors in the provided Python code while maintaining its functionality. \
-    Output only the corrected code or 'no fixes were made' if the code is error-free, without any explanations or additional information.",
+    It is possible that the code is error free, in that case output an exact copy of the code.\
+    Otherwise output the corrected code without any extra comments or explainations.",
     backstory = "You are an expert code debugger whose job is to find and fix errors in Python code. \
-    Provide only the corrected code or the message 'no fixes were made' if there are no errors.",
+    You never add extra comments, information, or explainations to your output.\
+    You always provide the corrected code with fixes applied.",
     verbose = False,
     allow_delegation = False,
     llm = model    
@@ -58,39 +57,39 @@ adjust_output_agent = Agent(
     backstory="You are an expert in refining python code based on user requirements. \
     Your job is to adjust the provided python code base on user feedbacks while keeping the functionality and correctness of the code. \
     Provide code adjustments only when it is accapable. \
-    Output the original code without adjustments if not accapable or if the requirement is 'No requirement'.",
+    Output the original code without adjustments if not accapable, or if the requirement is 'No requirement'.",
     verbose=False,
     allow_delegation=False,
     llm=model
 )
 
 
+# DEBUG TASK
 debug_and_fix_errors = Task(
     description = f"Find and fix all errors in the Python code: '{lines}'",
     agent = debugger,
-    expected_output = "Output a copy of Python code with all the errors fixed, or 'no fixes were made' if the code is error free. \
-    No extra information or explainations should be provided.",
+    expected_output = "Output a copy of the original Python code with all errors fixed. \
+    No extra comments, information or explainations should be provided.",
 )
-
-user_feedback_summarize = Task(
-    description = f"Summarize the feedback: '{feedback}'",
-    agent = feedback_summarizer,
-    expected_output = "Output a concise sumarry of the feedback recieved without extra information or mentioning this is a feedback.",
-)
-
-adjust_output_task = Task(
-    description=f"Refine the 'debugger' agent's output based on the requirements: '{requirements}'.",
-    agent=adjust_output_agent,
-    expected_output="Output a copy of Python code or response that aligns with the user's requirements. \
-    If not adjustments were made or if the requirement is 'No requirement' then output the original code provied by the 'debugger' agent."
-)
-
 
 defect_crew = Crew(
     agents = [debugger],
     tasks = [debug_and_fix_errors],
     verbose = 2,
     process = Process.sequential
+)
+
+# DEBUG TASK ONLY
+# output = defect_crew.kickoff()
+# print(output)
+
+
+
+# FEEDBACK SUMMARIZE TASK
+user_feedback_summarize = Task(
+    description = f"Summarize the feedback: '{feedback}'",
+    agent = feedback_summarizer,
+    expected_output = "Output a concise sumarry of the feedback recieved without extra information or mentioning this is a feedback.",
 )
 
 feedback_crew = Crew(
@@ -100,6 +99,22 @@ feedback_crew = Crew(
     process = Process.sequential
 )
 
+# ADD TO FEEDBACK LOG
+# new_feedback = feedback_crew.kickoff()
+# fb.init_feedback_log()
+# json_str = fb.process_feedback(new_feedback)
+# fb.save_feedback(json_str)
+# print(new_feedback)
+
+
+# REFINE RESPONSE TASK
+requirements = fb.extract_instructions('./feedback_log.json')
+adjust_output_task = Task(
+    description=f"Refine the 'debugger' agent's output based on the requirements: '{requirements}'.",
+    agent=adjust_output_agent,
+    expected_output="Output a copy of the refined response that aligns with the user's requirements."
+)
+
 defect_with_feedback_crew = Crew(
     agents = [debugger, adjust_output_agent],
     tasks = [debug_and_fix_errors, adjust_output_task],
@@ -107,14 +122,6 @@ defect_with_feedback_crew = Crew(
     process = Process.sequential
 )
 
-output = defect_crew.kickoff()
+# REFINE DEBUGGER OUTPUT WITH FEEDBACKS
+output = defect_with_feedback_crew.kickoff()
 print(output)
-
-# new_feedback = feedback_crew.kickoff()
-# fb.init_feedback_log()
-# json_str = fb.process_feedback(new_feedback)
-# fb.save_feedback(json_str)
-# print(new_feedback)
-
-# output = defect_with_feedback_crew.kickoff()
-# print(output)
