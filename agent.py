@@ -27,15 +27,11 @@ summarizer = Agent(
 
 debugger = Agent(
     role = "Python code debugger",
-    goal = "Thoroughly inspect the provided Python code, \
-    identify and fix all syntax, runtime, and logical errors maintain the original code's functionality, \
-    provide the corrected code as your output. \
-    If any error was found, provide a copy of the original Python code that has all errors fixed. \
-    If no error was found, then output 'no fixes were made' only without making changes to the code.",
-    backstory = "Your are an expert code debugger whose only job is to find and fix errors in Python code. \
-    Don't be afraid to point out any errors that you have noticed. \
-    There is a chance that the code is error free, in that case no fixes are required.",
-    verbose = True,
+    goal = "Identify and fix all syntax, runtime, and logical errors in the provided Python code while maintaining its functionality. \
+    Output only the corrected code or 'no fixes were made' if the code is error-free, without any explanations or additional information.",
+    backstory = "You are an expert code debugger whose job is to find and fix errors in Python code. \
+    Provide only the corrected code or the message 'no fixes were made' if there are no errors.",
+    verbose = False,
     allow_delegation = False,
     llm = model    
 )
@@ -46,7 +42,7 @@ feedback_summarizer = Agent(
     Exclude any additional explanations or context.",
     backstory = "You are a concise feedback summarizer. \
     Your task is to convert user feedback into a direct, imperative statement that reflects the core suggestion or issue. \
-    Remove any extra information and focus solely on the essential action.",
+    Do not include any explanations or additional information.",
     verbose = True,
     allow_delegation = False,
     llm = model
@@ -55,7 +51,8 @@ feedback_summarizer = Agent(
 debug_and_fix_errors = Task(
     description = f"Find and fix all errors in the Python code: '{lines}'",
     agent = debugger,
-    expected_output = "Output a copy of Python code with all the errors fixed, or 'no fixes were made' if the code is error free.",
+    expected_output = "Output a copy of Python code with all the errors fixed, or 'no fixes were made' if the code is error free. \
+    No extra information or explainations should be provided.",
 )
 
 user_feedback_summarize = Task(

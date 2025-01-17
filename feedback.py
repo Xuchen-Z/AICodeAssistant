@@ -39,3 +39,17 @@ def process_feedback(new_instruction):
 
     updated_feedback_json = json.dumps(existing_feedback)
     return updated_feedback_json
+
+def extract_instructions(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            data = json.load(file)
+        instructions = data.get("instructions", [])
+        if instructions:
+            return " ".join(instructions)
+        else:
+            return "No requirement."
+    except FileNotFoundError:
+        return f"No requirement."
+    except json.JSONDecodeError as e:
+        return f"No requirement."
